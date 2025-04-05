@@ -71,11 +71,8 @@ def get_conflicted_vertices(graph, colors):
             conflicted.add(v)
     return list(conflicted)
 
-def color(graph, k, steps, use_gpu=False, random_walk_prob=0.4, min_hill_climb=100):
+def color(graph, number_of_colors, steps, use_gpu=False, random_walk_prob=0.4, min_hill_climb=100):
     """
-    Attempts to find a valid k-coloring of the graph using an incremental hill climbing approach.
-    
-    Instead of simulated annealing, this version forces hill climbing moves for at least
     `min_hill_climb` consecutive steps. In these steps it always selects the best candidate move 
     (i.e., the move with the lowest delta in conflicts) even if it does not improve the conflict count.
     After a streak of hill climbing moves, with probability `random_walk_prob` a random move is allowed,
@@ -83,7 +80,7 @@ def color(graph, k, steps, use_gpu=False, random_walk_prob=0.4, min_hill_climb=1
     
     Parameters:
       graph            - an instance of Graph.
-      k                - number of colors to use.
+      number_of_colors                - number of colors to use.
       steps            - maximum number of local search steps.
       use_gpu          - if True, GPU conflict counting is used to periodically verify the incremental conflict count.
       random_walk_prob - probability for a random move after the hill climbing streak.
@@ -97,24 +94,24 @@ def color(graph, k, steps, use_gpu=False, random_walk_prob=0.4, min_hill_climb=1
     The algorithm precomputes neighbor lists and maintains S, the sum of conflict counts (each conflict counted twice),
     so that the number of unique conflicts is S // 2.
     """
-    n = graph.num_vertices
+    num_of_verticies = graph.num_vertices
 
     if use_gpu:
         print("GPU acceleration for conflict checking is enabled.")
     
     # Initialize with a random coloring.
-    colors = np.random.randint(0, k, size=n).astype(np.int32)
+    colors = np.random.randint(0, number_of_colors, size=num_of_verticies).astype(np.int32)
     
     # Precompute neighbor lists.
-    neighbors = [[] for _ in range(n)]
+    neighbors = [[] for _ in range(num_of_verticies)]
     for u, v in graph.edges:
         neighbors[u].append(v)
         neighbors[v].append(u)
     
     # Compute initial conflicts for each vertex and S = sum(conflicts).
-    conflicts = np.zeros(n, dtype=np.int32)
+    conflicts = np.zeros(num_of_verticies, dtype=np.int32)
     S = 0
-    for v in range(n):
+    for v in range(num_of_verticies):
         cnt = 0
         for nb in neighbors[v]:
             if colors[v] == colors[nb]:
@@ -128,7 +125,7 @@ def color(graph, k, steps, use_gpu=False, random_walk_prob=0.4, min_hill_climb=1
     
     while step < steps and (S // 2) > 0:
         # Pick a vertex that is in conflict.
-        conflicted_vertices = [v for v in range(n) if conflicts[v] > 0]
+        conflicted_vertices = [v for v in range(num_of_verticies) if conflicts[v] > 0]
         if not conflicted_vertices:
             break
         v = np.random.choice(conflicted_vertices)
@@ -139,7 +136,7 @@ def color(graph, k, steps, use_gpu=False, random_walk_prob=0.4, min_hill_climb=1
             # Forced hill climbing: choose the best candidate move from all possible moves.
             old_conflicts_v = conflicts[v]
             candidate_moves = []
-            for candidate in range(k):
+            for candidate in range(number_of_colors):
                 if candidate == current_color:
                     continue
                 new_conflicts = 0
@@ -154,12 +151,12 @@ def color(graph, k, steps, use_gpu=False, random_walk_prob=0.4, min_hill_climb=1
         else:
             # After a sufficient hill climbing streak, with probability random_walk_prob, allow a random move.
             if np.random.rand() < random_walk_prob:
-                new_color = np.random.randint(0, k)
+                new_color = np.random.randint(0, number_of_colors)
                 hill_climb_streak = 0
             else:
                 old_conflicts_v = conflicts[v]
                 candidate_moves = []
-                for candidate in range(k):
+                for candidate in range(number_of_colors):
                     if candidate == current_color:
                         continue
                     new_conflicts = 0
