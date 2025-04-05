@@ -32,6 +32,7 @@ def main():
     parser.add_argument("--random", type=float, default=0.3, help="Probability for random walk moves (default: 0.3)")
     parser.add_argument("--min_hill_climb", type=int, default=100, help="Minimum number of consecutive hill climbing moves (default: 100)")
     parser.add_argument("--gpu", action="store_true", help="Enable GPU acceleration for conflict counting")
+    parser.add_argument("--interactive", action="store_true", help="Add interactive graph in the html report")
     args = parser.parse_args()
 
     graph = load_graph(args.file)
@@ -69,7 +70,9 @@ def main():
     print(f"Final conflicts: {final_conflicts}")
 
     image_filename = visualize_coloring(graph, coloring)
-    interactive_data = generate_graph_json(graph, coloring)
+    interactive_data = None
+    if (args.interactive):
+        interactive_data = generate_graph_json(graph, coloring)
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     params = {
