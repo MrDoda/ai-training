@@ -1,5 +1,3 @@
-# graph.py
-
 import numpy as np
 
 class Graph:
@@ -26,7 +24,6 @@ def load_graph(filename):
             if not parts:
                 continue
             if parts[0] == 'p':
-                # Example: p edge 125 1053
                 num_vertices = int(parts[2])
             elif parts[0] == 'e':
                 u = int(parts[1]) - 1  # convert to 0-indexed
