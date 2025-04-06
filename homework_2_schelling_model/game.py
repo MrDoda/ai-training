@@ -1,15 +1,15 @@
-# game.py
 import pygame
 import random
-from config import WINDOW_WIDTH, WINDOW_HEIGHT, BOTTOM_BAR_HEIGHT, GRAPH_AREA_X, GRAPH_AREA_Y, GRAPH_AREA_WIDTH, GRAPH_AREA_HEIGHT, GRID_ROWS, GRID_COLS
+from config import AUTO_FPS, WINDOW_WIDTH, WINDOW_HEIGHT, BOTTOM_BAR_HEIGHT, GRAPH_AREA_X, GRAPH_AREA_Y, GRAPH_AREA_WIDTH, GRAPH_AREA_HEIGHT, GRID_ROWS, GRID_COLS
 from button import ButtonManager
 import schelling
 
 class Game:
-    def __init__(self, screen):
+    def __init__(self, screen, threshold):
         self.number_of_iterations = 0
         self.fully_satisfied = False
         self.screen = screen
+        self.threshold = threshold
         self.rep = schelling.initialize_representation(density=0.9)
         self.total_agents = sum(1 for i in range(GRID_ROWS) for j in range(GRID_COLS) if self.rep[i][j] != 0)
         self.evolution = []
@@ -19,7 +19,7 @@ class Game:
         self.button_manager.set_callback("AUTO", self.toggle_auto)
         self.auto_mode = False
         self.frame_count = 0
-    
+
     def compute_satisfaction_ratio(self):
         satisfied = 0
         occupied = 0
@@ -27,31 +27,30 @@ class Game:
             for j in range(GRID_COLS):
                 if self.rep[i][j] != 0:
                     occupied += 1
-                    if schelling.is_satisfied(self.rep, i, j, threshold=0.5):
+                    if schelling.is_satisfied(self.rep, i, j, threshold=self.threshold):
                         satisfied += 1
-                        
         satisfaction = satisfied / occupied if occupied > 0 else 1.0
-        if (satisfaction == 1.0):
+        if satisfaction == 1.0:
             self.fully_satisfied = True
-            print(f"Fully satisfied at {self.number_of_iterations} iterations." )
-        return satisfied / occupied if occupied > 0 else 1.0
+            print(f"Fully satisfied at {self.number_of_iterations} iterations.")
+        return satisfaction
 
     def one_step(self):
-        self.number_of_iterations +=1
-        self.rep = schelling.step(self.rep, threshold=0.5)
+        self.number_of_iterations += 1
+        self.rep = schelling.step(self.rep, threshold=self.threshold)
         ratio = self.compute_satisfaction_ratio()
         self.evolution.append(ratio)
-        if (self.fully_satisfied):
+        if self.fully_satisfied:
             self.auto_mode = False
-        print(f"Step executed. step number: {self.number_of_iterations}" )
+        print(f"Step executed. Step number: {self.number_of_iterations}")
 
     def ten_steps(self):
         for _ in range(10):
-            self.number_of_iterations +=1
-            self.rep = schelling.step(self.rep, threshold=0.5)
+            self.number_of_iterations += 1
+            self.rep = schelling.step(self.rep, threshold=self.threshold)
             ratio = self.compute_satisfaction_ratio()
             self.evolution.append(ratio)
-        print(f"10 steps executed. step number: {self.number_of_iterations}")
+        print(f"10 steps executed. Step number: {self.number_of_iterations}")
 
     def toggle_auto(self):
         self.auto_mode = not self.auto_mode
@@ -66,7 +65,7 @@ class Game:
 
     def update(self):
         self.frame_count += 1
-        if self.auto_mode and self.frame_count % 10 == 0:
+        if self.auto_mode and self.frame_count % AUTO_FPS == 0:
             self.one_step()
 
     def draw(self):
