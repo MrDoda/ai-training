@@ -10,16 +10,13 @@ class Button:
         self.text_surface = self.font.render(self.text, True, (255, 255, 255))
     
     def draw(self, surface):
-        # Draw shadow
         shadow_offset = (3, 3)
         shadow_rect = self.rect.copy()
         shadow_rect.x += shadow_offset[0]
         shadow_rect.y += shadow_offset[1]
         pygame.draw.rect(surface, (0, 0, 0), shadow_rect, border_radius=5)
-        # Button color (changes on hover)
         button_color = (70, 130, 180) if not self.hover else (100, 149, 237)
         pygame.draw.rect(surface, button_color, self.rect, border_radius=5)
-        # Center the text
         text_rect = self.text_surface.get_rect(center=self.rect.center)
         surface.blit(self.text_surface, text_rect)
     
@@ -37,7 +34,6 @@ class ButtonManager:
         button_height = 40
         margin = 20
         y = window_height - bottom_bar_height // 2 - button_height // 2
-        # Three buttons: left ("1 Step"), center ("10 Steps"), and right ("AUTO")
         x1 = margin
         x2 = (window_width - button_width) // 2
         x3 = window_width - button_width - margin

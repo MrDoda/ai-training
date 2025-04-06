@@ -7,11 +7,12 @@ import schelling
 
 class Game:
     def __init__(self, screen):
+        self.number_of_iterations = 0
+        self.fully_satisfied = False
         self.screen = screen
         self.rep = schelling.initialize_representation(density=0.9)
-        # Total occupied cells remain constant
         self.total_agents = sum(1 for i in range(GRID_ROWS) for j in range(GRID_COLS) if self.rep[i][j] != 0)
-        self.evolution = []  # List of satisfaction ratios over time
+        self.evolution = []
         self.button_manager = ButtonManager(WINDOW_WIDTH, WINDOW_HEIGHT, BOTTOM_BAR_HEIGHT)
         self.button_manager.set_callback("1 Step", self.one_step)
         self.button_manager.set_callback("10 Steps", self.ten_steps)
@@ -28,20 +29,29 @@ class Game:
                     occupied += 1
                     if schelling.is_satisfied(self.rep, i, j, threshold=0.5):
                         satisfied += 1
+                        
+        satisfaction = satisfied / occupied if occupied > 0 else 1.0
+        if (satisfaction == 1.0):
+            self.fully_satisfied = True
+            print(f"Fully satisfied at {self.number_of_iterations} iterations." )
         return satisfied / occupied if occupied > 0 else 1.0
 
     def one_step(self):
+        self.number_of_iterations +=1
         self.rep = schelling.step(self.rep, threshold=0.5)
         ratio = self.compute_satisfaction_ratio()
         self.evolution.append(ratio)
-        print(f"Step executed. Satisfaction ratio: {ratio:.2f}")
+        if (self.fully_satisfied):
+            self.auto_mode = False
+        print(f"Step executed. step number: {self.number_of_iterations}" )
 
     def ten_steps(self):
         for _ in range(10):
+            self.number_of_iterations +=1
             self.rep = schelling.step(self.rep, threshold=0.5)
             ratio = self.compute_satisfaction_ratio()
             self.evolution.append(ratio)
-        print(f"10 steps executed. Latest satisfaction ratio: {self.evolution[-1]:.2f}")
+        print(f"10 steps executed. step number: {self.number_of_iterations}")
 
     def toggle_auto(self):
         self.auto_mode = not self.auto_mode
@@ -61,12 +71,9 @@ class Game:
 
     def draw(self):
         self.screen.fill((255, 255, 255))
-        # Draw Schelling grid
         schelling.plot(self.rep, self.screen)
-        # Draw bottom bar for buttons
         pygame.draw.rect(self.screen, (50, 50, 50), (0, WINDOW_HEIGHT - BOTTOM_BAR_HEIGHT, WINDOW_WIDTH, BOTTOM_BAR_HEIGHT))
         self.button_manager.draw(self.screen)
-        # Draw graph of satisfaction evolution in the designated graph area
         self.draw_graph()
 
     def draw_graph(self):
@@ -74,13 +81,11 @@ class Game:
         pygame.draw.rect(self.screen, (240, 240, 240), graph_rect)
         if len(self.evolution) < 2:
             return
-        # Prepare points for a line graph
         max_steps = len(self.evolution)
         x_scale = GRAPH_AREA_WIDTH / (max_steps - 1)
         points = []
         for i, ratio in enumerate(self.evolution):
             x = GRAPH_AREA_X + i * x_scale
-            # Invert y so that higher satisfaction is drawn higher
             y = GRAPH_AREA_Y + GRAPH_AREA_HEIGHT - (ratio * GRAPH_AREA_HEIGHT)
             points.append((x, y))
         pygame.draw.lines(self.screen, (0, 0, 0), False, points, 2)

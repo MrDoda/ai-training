@@ -57,7 +57,6 @@ def step(rep, threshold=0.5):
     """
     unsatisfied = []
     empty_cells = []
-    # Identify unsatisfied agents and empty cells.
     for i in range(GRID_ROWS):
         for j in range(GRID_COLS):
             if rep[i][j] == 0:
@@ -66,7 +65,6 @@ def step(rep, threshold=0.5):
                 if not is_satisfied(rep, i, j, threshold):
                     unsatisfied.append((i, j))
     random.shuffle(unsatisfied)
-    # Move each unsatisfied agent if an empty cell is available.
     for (i, j) in unsatisfied:
         if empty_cells:
             new_pos = random.choice(empty_cells)
@@ -98,7 +96,6 @@ def plot(rep, surface):
             y = GRID_ORIGIN_Y + i * CELL_SIZE
             rect = pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)
             pygame.draw.rect(surface, color, rect)
-    # Draw grid lines
     for i in range(GRID_ROWS + 1):
         y = GRID_ORIGIN_Y + i * CELL_SIZE
         pygame.draw.line(surface, COLOR_GRID_LINE, (GRID_ORIGIN_X, y), (GRID_ORIGIN_X + GRID_COLS * CELL_SIZE, y))
