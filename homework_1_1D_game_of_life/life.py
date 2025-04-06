@@ -1,52 +1,61 @@
 import random
 
-# Module-level variable to store the chosen rule function.
 _selected_rule = None
 
 def step(row):
     global _selected_rule
+    rules = [
+        two_neighbors,
+        three_neighbors,
+        exactly_two_neighbors,
+        exactly_three_neighbors,
+        at_least_one_neighbor,
+        at_most_one_neighbor,
+        even_neighbors,
+        odd_neighbors,
+        divisible_by_three,
+        majority_rule,
+        minority_rule,
+        always_dead_rule,
+        always_alive_rule,
+        copy_rule,
+        sum_plus_self_rule,
+        double_threshold_rule,
+        alternating_rule,
+        weighted_rule,
+        random_flip_rule,
+        zero_rule,
+        inverted_rule,
+        parity_rule,
+        mirror_rule
+    ]
     if _selected_rule is None:
-        rules = [
-            two_neighbors,
-            three_neighbors,
-            exactly_two_neighbors,
-            exactly_three_neighbors,
-            at_least_one_neighbor,
-            at_most_one_neighbor,
-            even_neighbors,
-            odd_neighbors,
-            divisible_by_three,
-            majority_rule,
-            minority_rule,
-            always_dead_rule,
-            always_alive_rule,
-            copy_rule,
-            sum_plus_self_rule,
-            double_threshold_rule,
-            alternating_rule,
-            weighted_rule,
-            random_flip_rule,
-            zero_rule,
-            inverted_rule,
-            parity_rule,
-            mirror_rule
-        ]
         _selected_rule = random.choice(rules)
-        print(f"Using rule: {_selected_rule.__name__}")
+        print(f"Using rule: {_selected_rule.__name__} (random selection)")
+        
+    elif isinstance(_selected_rule, int):
+        rule_index = _selected_rule
+        if 0 <= rule_index < len(rules):
+            _selected_rule = rules[rule_index]
+            print(f"Using rule: {_selected_rule.__name__} (set via parameter)")
+        else:
+            _selected_rule = random.choice(rules)
+            print(f"Invalid rule index {rule_index}. Using rule: {_selected_rule.__name__} (random selection)")
+            
+    # uncomment the next row to get the full random mayhem
+    _selected_rule = random.choice(rules)
+    
     new_row = []
     for i in range(len(row)):
         new_row = _selected_rule(new_row, i, row)
     return new_row
 
-
 def printrow(row):
-    """
-    Prints the row to the console using a block for alive cells.
-    """
     print("".join("█" if cell == 1 else " " for cell in row))
 
 
-# RULE FUNCTIONS – each takes (new_row, i, row) and appends the new state for cell i.
+
+# RULE FUNCTIONS 
 
 def two_neighbors(new_row, i, row):
     if i == 0:

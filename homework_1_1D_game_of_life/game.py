@@ -1,10 +1,8 @@
-# game.py
-
 import pygame
 import random
 from config import WINDOW_WIDTH, WINDOW_HEIGHT, BOTTOM_BAR_HEIGHT, CELL_SIZE, ROW_CELLS, CANVAS_BG_COLOR, BOTTOM_BAR_BG_COLOR, ALIVE_COLOR, DEAD_COLOR
 from button import ButtonManager
-from life import step  # Import the step function from life.py
+from life import step 
 
 class Game:
     def __init__(self, screen):

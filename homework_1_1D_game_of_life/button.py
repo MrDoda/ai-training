@@ -1,5 +1,3 @@
-# button.py
-
 import pygame
 
 class Button:
