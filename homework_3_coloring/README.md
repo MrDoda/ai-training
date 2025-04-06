@@ -46,7 +46,7 @@ python main.py dsjc125.9.col --colors 44 --steps 1000000 --random 0.4 --min_hill
   - `--gpu`: Enable GPU acceleration for conflict counting.
   - `--random 0.4`: Chance to go on a random walk instead of Hill Climbing.
   - `--min_hill_climb 100`: Minimum Hill Climbing streak.
-  - `--interactive`: Adds interactive graph into the html report.
+  - `--interactive`: Adds interactive graph into the html report. WARNING: this is not meant to be used often, its here just for fun so please don't use it.
 
   
 
