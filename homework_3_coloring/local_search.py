@@ -2,7 +2,6 @@ import numpy as np
 import time
 import math
 
-# Attempt to import Numba's CUDA support.
 try:
     from numba import cuda
     gpu_available = cuda.is_available()
@@ -85,11 +84,6 @@ def color(graph, number_of_colors, steps, use_gpu=False, random_walk_prob=0.4, m
       use_gpu          - if True, GPU conflict counting is used to periodically verify the incremental conflict count.
       random_walk_prob - probability for a random move after the hill climbing streak.
       min_hill_climb   - minimum number of consecutive hill climbing moves before considering a random move.
-    
-    Returns:
-      A tuple (colors, success) where:
-         - colors: an array of color assignments for each vertex.
-         - success: True if a valid coloring (zero unique conflicts) was found.
     
     The algorithm precomputes neighbor lists and maintains S, the sum of conflict counts (each conflict counted twice),
     so that the number of unique conflicts is S // 2.

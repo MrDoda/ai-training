@@ -2,8 +2,8 @@ import numpy as np
 
 class Graph:
     def __init__(self, num_vertices, edges):
-        self.num_vertices = num_vertices  # Number of vertices.
-        self.edges = edges                # NumPy array of shape (m, 2) with 0-indexed vertices.
+        self.num_vertices = num_vertices
+        self.edges = edges
 
 def load_graph(filename):
     """
@@ -26,7 +26,7 @@ def load_graph(filename):
             if parts[0] == 'p':
                 num_vertices = int(parts[2])
             elif parts[0] == 'e':
-                u = int(parts[1]) - 1  # convert to 0-indexed
+                u = int(parts[1]) - 1
                 v = int(parts[2]) - 1
                 edge_list.append((u, v))
     edges = np.array(edge_list, dtype=np.int32)
