@@ -18,8 +18,8 @@ GENOME_LEN = 5
 
 def betray(my_history, opponent_history, genome):
     """
-    Reactive memory-1 strategy: 5-bit genome
-      [init, resp(CC), resp(CD), resp(DC), resp(DD)]
+    Reactive; strategy: 5-bit genome
+      [init, (CC), (CD), (DC), (DD)]
     Returns 0 (cooperate) or 1 (defect).
     """
     # First move: no history yet

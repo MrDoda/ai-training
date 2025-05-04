@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#boom_game.py
 
 
 import pygame

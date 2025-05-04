@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-
+#boom_evolve.py
 
 import pygame
 import numpy as np
@@ -29,7 +28,7 @@ WHITE = (255, 255, 255)
 TITLE = "Boom Master"
 pygame.display.set_caption(TITLE)
 
-FPS = 80
+FPS = 600
 ME_VELOCITY = 5
 MAX_MINE_VELOCITY = 3
 
@@ -54,8 +53,8 @@ ME = pygame.transform.scale(ME_IMAGE, (ME_SIZE, ME_SIZE))
 SEA = pygame.transform.scale(SEA_IMAGE, (WIDTH, HEIGHT))
 FLAG = pygame.transform.scale(FLAG_IMAGE, (ME_SIZE, ME_SIZE))
 
-
-
+# helper for distance from top and left wall
+MAX_DIST = math.hypot(WIDTH, HEIGHT)
 
 
 
@@ -158,7 +157,35 @@ def reset_mes(mes, pop):
 # senzorické funkce 
 # -----------------------------------------------------------------------------    
 
+# We expose 5 very simple, "cheap" sensors, all normalised to the ⟨0,1⟩ or ⟨‑1,1⟩ interval
+# so the net does not have to fight un‑scaled magnitudes:
+#   0 – distance to the *closest* mine / map diagonal (0 ≡ on top of mine, 1 ≡ max far)
+#   1 – Δx to the flag centre  / WIDTH    (‑1 ≡ flag fully left, 1 ≡ fully right)
+#   2 – Δy to the flag centre  / HEIGHT   (‑1 ≡ flag above, 1 ≡ below)
+#   3 – distance to *left* wall / WIDTH   (0 ≡ scraping wall, 1 ≡ far right)
+#   4 – distance to *top*  wall / HEIGHT  (0 ≡ scraping wall, 1 ≡ far bottom)
 
+
+def get_sensor_inputs(me, mines, flag):
+    """Return a 5‑component list described above."""
+    mcx, mcy = me.rect.center
+
+    # 0) closests mine distance (normalised)
+    closest_d = min(
+        math.hypot(m.rect.centerx - mcx, m.rect.centery - mcy) for m in mines
+    )
+    dist_closest_norm = closest_d / MAX_DIST  # ⟨0,1⟩
+
+    # 1–2) deltas to flag centre (normalised, can be negative)
+    fcx, fcy = flag.rect.center
+    dx_flag = (fcx - mcx) / WIDTH   # ⟨‑1,1⟩
+    dy_flag = (fcy - mcy) / HEIGHT  # ⟨‑1,1⟩
+
+    # 3) distance to the left wall, 4) to the top wall
+    dist_left_norm = me.rect.x / WIDTH     # ⟨0,1⟩
+    dist_top_norm  = me.rect.y / HEIGHT    # ⟨0,1⟩
+
+    return [dist_closest_norm, dx_flag, dy_flag, dist_left_norm, dist_top_norm]
 
 
 # TODO
@@ -333,47 +360,63 @@ def draw_text(text):
 #----------------------------------------------------------------------------
 
 
-# <----- ZDE je místo vlastní funkci !!!!
+# topology: 5 inputs  + 1 bias  -> 4 outputs (Up,Down,Left,Right)
+NUM_INPUTS = 5
+NUM_OUTPUTS = 4
+WEI_PER_OUTPUT = NUM_INPUTS + 1  # +1 bias
+GENOME_LENGTH = WEI_PER_OUTPUT * NUM_OUTPUTS  # 24
 
 
-
-# funkce reprezentující výpočet neuronové funkce
-# funkce dostane na vstupu vstupy neuronové sítě inp, a váhy hran wei
-# vrátí seznam hodnot výstupních neuronů
 def nn_function(inp, wei):
-    
-  
-    
-    return [3]
+    """Forward‑pass of a single‑layer perceptron.
+    * `inp`  – list/array length = 5
+    * `wei`  – flat list/array length = 24 ( 4×(5+1) )
+
+    Returns list length 4 with *sigmoid* activations.
+    """
+    # safety guards – fallbacks for malformed chromosomes
+    if len(wei) != GENOME_LENGTH:
+        # repeat / crop so we always have 24 numbers
+        rep = (GENOME_LENGTH // len(wei)) + 1
+        wei = (wei * rep)[:GENOME_LENGTH]
+
+    # add bias 1.0 at the end of the input vector
+    vec_in = np.asarray(list(inp) + [1.0], dtype=float)  # shape (6,)
+    W = np.asarray(wei, dtype=float).reshape(NUM_OUTPUTS, WEI_PER_OUTPUT)  # (4,6)
+
+    raw_out = W.dot(vec_in)  # (4,)
+    # simple squashing so values stay in a reasonable range
+    out = 1.0 / (1.0 + np.exp(-raw_out))
+    return out.tolist()
 
 
-# naviguje jedince pomocí neuronové sítě a jeho vlastní sekvence v něm schované
+# -----------------------------------------------------------------------------
+# *** AGENT NAVIGATION USING ITS OWN GENOME ***
+# -----------------------------------------------------------------------------
+
 def nn_navigate_me(me, inp):
-       
-    
-    # TODO  <------ ZDE vlastní kód vyhodnocení výstupů z neuronové sítě !!!!!!
-    
-    out = np.array(nn_function(inp, me.sequence))
-    ind = out[0]
-    #print(out)
-    
-    # nahoru, pokud není zeď
+    """Use the genome stored in `me.sequence` to pick a direction and move."""
+
+    outs = nn_function(inp, me.sequence)  # 4 floats
+    ind = int(np.argmax(outs))            # 0..3
+
+    # Up (0)
     if ind == 0 and me.rect.y - ME_VELOCITY > 0:
         me.rect.y -= ME_VELOCITY
         me.dist += ME_VELOCITY
-    
-    # dolu, pokud není zeď
-    if ind == 1 and me.rect.y + me.rect.height + ME_VELOCITY < HEIGHT:
-        me.rect.y += ME_VELOCITY  
+
+    # Down (1)
+    elif ind == 1 and me.rect.y + me.rect.height + ME_VELOCITY < HEIGHT:
+        me.rect.y += ME_VELOCITY
         me.dist += ME_VELOCITY
-    
-    # doleva, pokud není zeď
-    if ind == 2 and me.rect.x - ME_VELOCITY > 0:
+
+    # Left (2)
+    elif ind == 2 and me.rect.x - ME_VELOCITY > 0:
         me.rect.x -= ME_VELOCITY
         me.dist += ME_VELOCITY
-        
-    # doprava, pokud není zeď    
-    if ind == 3 and me.rect.x + me.rect.width + ME_VELOCITY < WIDTH:
+
+    # Right (3)
+    elif ind == 3 and me.rect.x + me.rect.width + ME_VELOCITY < WIDTH:
         me.rect.x += ME_VELOCITY
         me.dist += ME_VELOCITY
     
@@ -391,18 +434,9 @@ def check_mes_won(mes, flag):
 
 # resi pohyb mes
 def handle_mes_movement(mes, mines, flag):
-    
     for me in mes:
-
         if me.alive and not me.won:
-            
-            # <----- ZDE  sbírání vstupů ze senzorů !!!
-            # naplnit vstup in vstupy ze senzorů
-            inp = []
-            
-            inp.append(my_senzor(me))
-            
-            
+            inp = get_sensor_inputs(me, mines, flag)   # 5 real sensors
             nn_navigate_me(me, inp)
 
 
@@ -421,13 +455,20 @@ def update_mes_timers(mes, timer):
 
 
 
-# funkce pro výpočet fitness všech jedinců
-def handle_mes_fitnesses(mes):    
-    
-    # <--------- TODO  ZDE se počítá fitness jedinců !!!!
-    # na základě informací v nich uložených, či jiných vstupů
+def handle_mes_fitnesses(mes):
+    """Survive long, big bonus for winning – but penalise NOT MOVING """
     for me in mes:
-        me.fitness = me.timealive
+        base_fit  = me.timealive                 # +1 per tick alive
+        win_bonus = 1_000 if me.won else 0       # huge reward for reaching the flag
+
+        # how many ticks did the agent *not* move?
+        moves_made        = me.dist // ME_VELOCITY      # 1 move ≡ +ME_VELOCITY
+        stationary_ticks  = me.timealive - moves_made   # could be 0 … timealive
+        idle_penalty      = stationary_ticks * 2        # weight 2 ⇒ tweak as you like
+
+        # penalise idling only if the agent hasn’t already won
+        me.fitness = base_fit + win_bonus - (0 if me.won else idle_penalty)
+
     
     
 
@@ -450,12 +491,12 @@ def main():
     
     VELIKOST_POPULACE = 10
     EVO_STEPS = 5  # pocet kroku evoluce
-    DELKA_JEDINCE = 10   # <--------- záleží na počtu vah a prahů u neuronů !!!!!
+    DELKA_JEDINCE = GENOME_LENGTH   # 24 weights = 4×(5+1)
     NGEN = 30        # počet generací
     CXPB = 0.6          # pravděpodobnost crossoveru na páru
     MUTPB = 0.2        # pravděpodobnost mutace
     
-    SIMSTEPS = 1000
+    SIMSTEPS = 1_000
     
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     creator.create("Individual", list, fitness=creator.FitnessMax)
@@ -467,11 +508,10 @@ def main():
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
     # vlastni random mutace
-    # <----- ZDE TODO vlastní mutace
     def mutRandom(individual, indpb):
         for i in range(len(individual)):
             if random.random() < indpb:
-                individual[i] = random.random()
+                individual[i] = random.uniform(-1.0, 1.0)
         return individual,
 
     toolbox.register("mate", tools.cxTwoPoint)
@@ -500,7 +540,7 @@ def main():
     
     run = True
 
-    level = 1   # <--- ZDE nastavení obtížnosti počtu min !!!!!
+    level = 3   # <--- ZDE nastavení obtížnosti počtu min !!!!!
     generation = 0
     
     evolving = True

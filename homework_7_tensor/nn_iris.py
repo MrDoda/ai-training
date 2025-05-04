@@ -1,14 +1,6 @@
 #!/usr/bin/env python3
 """
-deap_iris.py
-
-Tiny supervised‑learning demo that uses **DEAP** to evolve a mini‑MLP for the classic
-Iris flower‑classification dataset (downloaded from *TensorFlow Datasets*).
-
-With only 150 samples and 4 numeric features, this is about the simplest
-non‑vision benchmark you can get.  After a quick 4‑generation hyper‑parameter
-search the best model is retrained and reaches > 95 % accuracy on the held‑out
-test split.
+Iris dataset has only 150 samples and 4 numeric features
 """
 
 import random
