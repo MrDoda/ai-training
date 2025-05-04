@@ -16,13 +16,12 @@ W_VAR_ERROR         = 1.0
 W_FLOOD_ERROR       = 1.0
 
 POP_SIZE    = 500
-NGEN        = 3000
+NGEN        = 200
 CXPB, MUTPB = 0.7, 0.2
 TERRAIN_LEN = 100
 
 
 # -------- Terrain visualization --------
-# terrain is list of floats in [0,1], 0.5 is sea level
 def plotterrain(t, sea_level=0.5):
     fig, ax = plt.subplots()
     x = range(len(t))
@@ -34,20 +33,16 @@ def plotterrain(t, sea_level=0.5):
 
 # -------- Fitness evaluation --------
 def evaluate_terrain(individual, sea_level=0.5):
-    """
-    Compute fitness by measuring how closely this terrain matches the
-    target number of lakes, variability, and flooded area percentage.
-    """
     heights = np.array(individual)
 
-    # 1) Count lakes
+    # Count lakes
     below = heights < sea_level
     lakes, sizes, size, in_lake = 0, [], 0, False
     for b in below:
         if b:
             size += 1
             if not in_lake:
-                lakes += 1;
+                lakes += 1
                 in_lake = True
         else:
             if in_lake:
@@ -56,10 +51,10 @@ def evaluate_terrain(individual, sea_level=0.5):
     if in_lake:
         sizes.append(size)
 
-    # 2) Variability (std. dev. of heights)
+    # Variability
     var = float(np.std(heights))
 
-    # 3) Flooded ratio
+    # Flooded ratio
     flooded_ratio = float(np.mean(below))
 
     # Compute absolute errors
@@ -80,11 +75,9 @@ def evaluate_terrain(individual, sea_level=0.5):
 def run_evolution():
 
 
-    # DEAP setup: single-objective maximization
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     creator.create("Individual", list,    fitness=creator.FitnessMax)
 
-    # Toolbox: how to create genes, individuals, and population
     toolbox = base.Toolbox()
     toolbox.register("attr_float", random.random)
     toolbox.register("individual",
@@ -97,7 +90,6 @@ def run_evolution():
                      list,
                      toolbox.individual)
 
-    # Register our fitness function
     toolbox.register("evaluate", evaluate_terrain, sea_level=0.5)
     toolbox.register("mate",   tools.cxTwoPoint)
     toolbox.register("mutate", tools.mutGaussian,
