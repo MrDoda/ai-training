@@ -455,19 +455,37 @@ def update_mes_timers(mes, timer):
 
 
 
-def handle_mes_fitnesses(mes):
-    """Survive long, big bonus for winning – but penalise NOT MOVING """
+def handle_mes_fitnesses(mes, flag):
+    """
+    Survive long  ->  bigger score  
+    Reach the flag ->  huge bonus  
+    BUT … lose points for idling andstaying far from the flag.
+    """
     for me in mes:
-        base_fit  = me.timealive                 # +1 per tick alive
-        win_bonus = 1_000 if me.won else 0       # huge reward for reaching the flag
+        # 1) staying alive
+        base_fit  = me.timealive
 
-        # how many ticks did the agent *not* move?
-        moves_made        = me.dist // ME_VELOCITY      # 1 move ≡ +ME_VELOCITY
-        stationary_ticks  = me.timealive - moves_made   # could be 0 … timealive
-        idle_penalty      = stationary_ticks * 2        # weight 2 ⇒ tweak as you like
+        # 2) jackpot
+        win_bonus = 1_000 if me.won else 0
 
-        # penalise idling only if the agent hasn’t already won
-        me.fitness = base_fit + win_bonus - (0 if me.won else idle_penalty)
+        # 3) **idle penalty** — how many ticks did we stand still?
+        moves_made       = me.dist // ME_VELOCITY           
+        stationary_ticks = me.timealive - moves_made
+        idle_penalty     = 2 * stationary_ticks 
+
+        # 4) **distance from flag penalty**
+        mx, my = me.rect.center
+        fx, fy = flag.rect.center
+        dist_to_flag      = math.hypot(fx - mx, fy - my)
+        dist_penalty      = (dist_to_flag / MAX_DIST) * 500
+
+        # combine
+        me.fitness = (
+            base_fit
+            + win_bonus
+            - (0 if me.won else idle_penalty)
+            - (0 if me.won else dist_penalty)
+        )
 
     
     
@@ -489,7 +507,7 @@ def main():
     # =====================================================================
     # <----- ZDE Parametry nastavení evoluce !!!!!
     
-    VELIKOST_POPULACE = 10
+    VELIKOST_POPULACE = 1000
     EVO_STEPS = 5  # pocet kroku evoluce
     DELKA_JEDINCE = GENOME_LENGTH   # 24 weights = 4×(5+1)
     NGEN = 30        # počet generací
@@ -516,7 +534,7 @@ def main():
 
     toolbox.register("mate", tools.cxTwoPoint)
     toolbox.register("mutate", mutRandom, indpb=0.05)
-    toolbox.register("select", tools.selRoulette)
+    toolbox.register("select", tools.selTournament, tournsize=3)
     toolbox.register("selectbest", tools.selBest)
     
     pop = toolbox.population(n=VELIKOST_POPULACE)
@@ -595,7 +613,7 @@ def main():
         if timer >= SIMSTEPS or nobodys_playing(mes): 
             
             # přepočítání fitness funkcí, dle dat uložených v jedinci
-            handle_mes_fitnesses(mes)   # <--------- ZDE funkce výpočtu fitness !!!!
+            handle_mes_fitnesses(mes, flag)   # <--------- ZDE funkce výpočtu fitness !!!!
             
             update_hof(hof, mes)
             
